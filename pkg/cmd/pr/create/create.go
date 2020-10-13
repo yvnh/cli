@@ -429,8 +429,8 @@ func createRun(opts *CreateOptions) error {
 		pushTries := 0
 		maxPushTries := 3
 		for {
-			regexp := regexp.MustCompile("^remote: (Create a pull request.*by visiting|[[:space:]]*https://.*/pull/new/).*\n?$")
-			cmdErr := NewRegexWriter(opts.IO.ErrOut, regexp, "")
+			r := NewRegexpWriter(opts.IO.ErrOut, gitPushRegexp, "")
+			cmdErr := r
 			cmdOut := opts.IO.Out
 			if err := git.Push(headRemote.Name, fmt.Sprintf("HEAD:%s", headBranch), cmdOut, cmdErr); err != nil {
 				if didForkRepo && pushTries < maxPushTries {
@@ -441,8 +441,10 @@ func createRun(opts *CreateOptions) error {
 					time.Sleep(time.Duration(waitSeconds) * time.Second)
 					continue
 				}
+				r.Flush()
 				return err
 			}
+			r.Flush()
 			break
 		}
 	}
@@ -564,3 +566,5 @@ func generateCompareURL(r ghrepo.Interface, base, head, title, body string, assi
 	}
 	return url, nil
 }
+
+var gitPushRegexp = regexp.MustCompile("^remote: (Create a pull request.*by visiting|[[:space:]]*https://.*/pull/new/).*\n?$")
